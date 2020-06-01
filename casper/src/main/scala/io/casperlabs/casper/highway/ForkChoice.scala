@@ -275,15 +275,6 @@ object ForkChoice {
                                    erasObservedBehaviors
                                  )
                                  .timerGauge("fromJustifications_messageJPast")
-          _ = println(
-            s"JUSTIFICATIONS SIZE: ${justificationsMessages.size}; EXTENDED: ${extendedJustifications.size}}"
-          )
-          _ = println(s"OBSERVED SIZES: ${erasObservedBehaviors.data.toSeq
-            .map { case (e, vs) => s"${e.show}: ${vs.size}" }
-            .mkString(", ")}")
-          _ = println(s"PANORAMA SIZES: ${panoramaOfTheBlock.data.toSeq
-            .map { case (e, vs) => s"${e.show}: ${vs.size}" }
-            .mkString(", ")}")
           keyBlocks <- MessageProducer.collectKeyBlocks[F](keyBlockHash)
           (forkChoice, forkChoiceJustifications) <- erasForkChoice(
                                                      keyBlock,
