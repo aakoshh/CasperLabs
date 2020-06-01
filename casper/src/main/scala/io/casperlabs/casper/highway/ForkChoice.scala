@@ -260,7 +260,14 @@ object ForkChoice {
           extendedJustificationHashes = justificationsMessages.flatMap { msg =>
             msg.justifications.map(_.latestBlockHash).toList
           }
-          extendedJustifications <- extendedJustificationHashes.traverse(dag.lookupUnsafe)
+          extendedJustifications <- extendedJustificationHashes
+                                     .traverse(dag.lookupUnsafe)
+                                     .map {
+                                       // Do not extend beyond the eras we care about.
+                                       _.filter { msg =>
+                                         erasObservedBehaviors.keyBlockHashes.contains(msg.eraId)
+                                       }
+                                     }
           panoramaOfTheBlock <- DagOperations
                                  .messageJPast[F](
                                    dag,
