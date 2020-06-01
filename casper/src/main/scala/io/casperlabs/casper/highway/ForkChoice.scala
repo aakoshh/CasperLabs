@@ -238,6 +238,8 @@ object ForkChoice {
                                            .timerGauge("fromKeyBlock_erasForkChoice")
         } yield Result(forkChoice, justifications.values.flatten.toSet)
 
+      import io.casperlabs.shared.ByteStringPrettyPrinter.byteStringShow
+
       override def fromJustifications(
           keyBlockHash: BlockHash,
           justifications: Set[BlockHash]
@@ -252,13 +254,29 @@ object ForkChoice {
                                     .map(EraObservedBehavior.local(_))
                                     .timerGauge("fromJustifications_eraObservedBehaviors")
           justificationsMessages <- justifications.toList.traverse(dag.lookupUnsafe)
+          // Justifications will only contain a limited subset of justificaitons in case of
+          // lambda responses. We can expand it to get a full set and let `messageJPast`
+          // reduce it to the latest per validator.
+          extendedJustificationHashes = justificationsMessages.flatMap { msg =>
+            msg.justifications.map(_.latestBlockHash).toList
+          }
+          extendedJustifications <- extendedJustificationHashes.traverse(dag.lookupUnsafe)
           panoramaOfTheBlock <- DagOperations
                                  .messageJPast[F](
                                    dag,
-                                   justificationsMessages,
+                                   justificationsMessages ++ extendedJustifications,
                                    erasObservedBehaviors
                                  )
                                  .timerGauge("fromJustifications_messageJPast")
+          _ = println(
+            s"JUSTIFICATIONS SIZE: ${justificationsMessages.size}; EXTENDED: ${extendedJustifications.size}}"
+          )
+          _ = println(s"OBSERVED SIZES: ${erasObservedBehaviors.data.toSeq
+            .map { case (e, vs) => s"${e.show}: ${vs.size}" }
+            .mkString(", ")}")
+          _ = println(s"PANORAMA SIZES: ${panoramaOfTheBlock.data.toSeq
+            .map { case (e, vs) => s"${e.show}: ${vs.size}" }
+            .mkString(", ")}")
           keyBlocks <- MessageProducer.collectKeyBlocks[F](keyBlockHash)
           (forkChoice, forkChoiceJustifications) <- erasForkChoice(
                                                      keyBlock,
