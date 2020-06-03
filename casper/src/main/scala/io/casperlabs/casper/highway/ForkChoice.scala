@@ -238,8 +238,6 @@ object ForkChoice {
                                            .timerGauge("fromKeyBlock_erasForkChoice")
         } yield Result(forkChoice, justifications.values.flatten.toSet)
 
-      import io.casperlabs.shared.ByteStringPrettyPrinter.byteStringShow
-
       override def fromJustifications(
           keyBlockHash: BlockHash,
           justifications: Set[BlockHash]
